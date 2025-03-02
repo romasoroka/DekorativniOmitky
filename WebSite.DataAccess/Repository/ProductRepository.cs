@@ -21,13 +21,11 @@ namespace WebSite.DataAccess.Repository
             var obj = _context.Products.FirstOrDefault(obj => obj.Id == product.Id);
             if (obj != null)
             {
-                obj.ISBN = product.ISBN;
-                obj.Author = product.Author;
+                obj.Name = product.Name;
+                obj.Price = product.Price;
+                obj.Weight = product.Weight;
                 obj.Description = product.Description;
                 obj.Price = product.Price;
-                obj.Price50 = product.Price50;
-                obj.Price100 = product.Price100;
-                obj.ListPrice = product.ListPrice;
                 obj.CategoryId = product.CategoryId;
                 if (product.ImageURL != null)
                 {

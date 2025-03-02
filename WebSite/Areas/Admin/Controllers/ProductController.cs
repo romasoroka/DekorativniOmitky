@@ -1,14 +1,17 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using WebSite.Data;
 using WebSite.DataAccess.Repository.IRepository;
 using WebSite.Models;
 using WebSite.Models.ViewModels;
+using WebSite.Utility;
 
 
 namespace WebSite.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    //[Authorize(Roles = SD.Role_Admin)]
     public class ProductController : Controller
     {
         private readonly IUnitOfWork _unitOfWork;
@@ -37,26 +40,35 @@ namespace WebSite.Areas.Admin.Controllers
         public IActionResult Upsert(ProductVM obj, IFormFile? file)
         {
             string wwwRootPath = _webHostEnvironment.WebRootPath;
-            if (file != null)
-            {
-                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
-                string path = Path.Combine(wwwRootPath, @"images\product");
-                if (!string.IsNullOrEmpty(obj.Product.ImageURL))
-                {
-                    var oldPath = Path.Combine(wwwRootPath, obj.Product.ImageURL.TrimStart('\\'));
-                    if(System.IO.File.Exists(oldPath))
-                    {
-                        System.IO.File.Delete(oldPath);
-                    }
-                }
+            string path = Path.Combine(wwwRootPath, @"images\product");
 
-                using (var fileStream = new FileStream(Path.Combine(path, fileName), FileMode.Create))
-                {
-                    file.CopyTo(fileStream);
-                }
-                obj.Product.ImageURL = @"\images\product\" + fileName;
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
             }
-            if (ModelState.IsValid)
+
+            
+            if (!string.IsNullOrEmpty(obj.Product.ImageURL) && obj.Product.ImageURL.StartsWith("data:image"))
+            {
+                try
+                {
+                    var base64Data = obj.Product.ImageURL.Substring(obj.Product.ImageURL.IndexOf(',') + 1);
+                    byte[] imageBytes = Convert.FromBase64String(base64Data);
+
+                    string fileName = Guid.NewGuid().ToString() + ".png"; 
+                    string filePath = Path.Combine(path, fileName);
+                    System.IO.File.WriteAllBytes(filePath, imageBytes);
+
+                    obj.Product.ImageURL = @"\images\product\" + fileName;
+                }
+                catch (Exception ex)
+                {
+                    TempData["error"] = $"Помилка при обробці Base64 зображення: {ex.Message}";
+                    return View();
+                }
+            }
+
+                if (ModelState.IsValid)
             {
                 if (obj.Product.Id == 0)
                 {
@@ -70,11 +82,12 @@ namespace WebSite.Areas.Admin.Controllers
                 TempData["success"] = "Successfully created product";
                 return RedirectToAction("Index");
             }
+
             return View();
         }
 
-     
-        
+
+
         #region api calls
 
         [HttpGet]
@@ -84,6 +97,7 @@ namespace WebSite.Areas.Admin.Controllers
             return Json(new { data = products });
         }
 
+        [HttpDelete]
         public IActionResult Delete(int? id)
         {
             var productToDelete = _unitOfWork.Product.Get(u  => u.Id == id);

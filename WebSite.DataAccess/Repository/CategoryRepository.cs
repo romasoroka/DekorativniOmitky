@@ -10,7 +10,7 @@ using WebSite.Models;
 
 namespace WebSite.DataAccess.Repository
 {
-    public class CategoryRepository : Repository<Category>, ICategoryRepository
+    public class CategoryRepository : Repository<Category >, ICategoryRepository
     {
         private readonly ApplicationDbContext _context;
         public CategoryRepository(ApplicationDbContext context) : base(context) 
@@ -18,9 +18,9 @@ namespace WebSite.DataAccess.Repository
             _context = context;
         }
 
-        public void Update(Category category)
+        public void Update(Category  Category )
         {
-            _context.Categories.Update(category);
+            _context.Categories.Update(Category );
         }
     }
 }
